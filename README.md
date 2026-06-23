@@ -71,6 +71,40 @@ curl http://localhost:8084/products/1
 }
 ```
 
+## Docker
+
+### Build et exécution en local
+
+```bash
+docker build -t test-web .
+docker run -p 8084:8084 test-web
+```
+
+L'API est alors disponible sur <http://localhost:8084/products>.
+
+Le [`Dockerfile`](Dockerfile) utilise un build **multi-stage** : une première
+étape (JDK 21) compile le jar avec `./gradlew bootJar`, puis l'image finale ne
+contient que le JRE et le jar, pour rester légère.
+
+### Intégration continue (GitHub Actions)
+
+Le workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) s'exécute sur
+chaque `push` et `pull_request` vers `main` :
+
+1. **Build & test** : `./gradlew build` (compilation + tests) sur JDK 21.
+2. **Build & push de l'image** : si les tests passent, l'image est construite et
+   publiée sur **GitHub Container Registry** (`ghcr.io/<owner>/test-web`).
+   La poussée n'a lieu que sur `push` vers `main` (les pull requests valident
+   uniquement que le build Docker fonctionne).
+
+Aucun secret à configurer : l'authentification utilise le `GITHUB_TOKEN`
+automatique. Tags générés : `latest`, le nom de la branche et le SHA du commit.
+
+```bash
+# Récupérer l'image publiée
+docker pull ghcr.io/<owner>/test-web:latest
+```
+
 ## Tests
 
 ```bash
